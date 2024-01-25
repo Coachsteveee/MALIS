@@ -7,33 +7,43 @@ Project 3: Ridge Regression
 - [ ] Task 1. Development of the [`ridge.py`](ridge.py) file to implement Ridge Regression without using external libraries like scikit-learn.
 
 ```python
-import numpy as np
-
 # using alpha to represent lambda to avoid naming conflicts
 class RidgeRegression:
     def __init__(self, alpha=1.0):
         self.alpha = alpha
-        self.weights = None
+        self.coef_ = None
+        self.intercept_ = None
+        self.x_mean_ = None
+        self.x_std_ = None
 
     def fit(self, X, y):
-        # Add an intercept term to the feature matrix X
+        # Standardizing the feature matrix X
+        self.x_mean_ = np.mean(X, axis=0)
+        self.x_std_ = np.std(X, axis=0)
+        X_std = (X - self.x_mean_) / self.x_std_
+
+        # Adding an intercept term to the feature matrix X
         n_samples = X.shape[0]
-        X_intercept = np.ones((n_samples, 1))
-        X = np.hstack((X_intercept, X))
+        X_std = np.hstack([np.ones((n_samples, 1)), X_std])  # Add intercept column
 
-        # Create the penalty matrix for Ridge Regression
-        n_features = X.shape[1]
-        A = self.alpha * np.eye(n_features)
+        # Creating the penalty matrix for Ridge Regression
+        n_features = X_std.shape[1]
+        A = np.eye(n_features)
         A[0, 0] = 0  # No regularization for the intercept term
+        penalty = self.alpha * A
 
-        # Solve the linear equation (X^T * X + alpha * I) * w = X^T * y for weights
-        self.weights = np.linalg.solve(X.T @ X + A, X.T @ y)
+        # Solving the linear equation (X^T * X + alpha * I) * w = X^T * y for weights
+        self.coef_ = np.linalg.solve(X_std.T @ X_std + penalty, X_std.T @ y)
+
+        # Extract the intercept from the fitted coefficients
+        self.intercept_ = self.coef_[0]
+        self.coef_ = self.coef_[1:]
 
     def predict(self, X):
-        n_samples = X.shape[0]
-        X_intercept = np.ones((n_samples, 1))
-        X = np.hstack((X_intercept, X))
-        return X.dot(self.weights)
+        X_std = (X - self.x_mean_) / self.x_std_
+        X_std = np.hstack([np.ones((X_std.shape[0], 1)), X_std])  # Add intercept column
+        return X_std @ np.hstack([self.intercept_, self.coef_])
+
 ```
 
 - [ ] Task 2. Documentation and analysis of the code implementation.
